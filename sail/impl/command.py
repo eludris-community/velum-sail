@@ -108,7 +108,7 @@ class Command(command_trait.Command[P, T]):
             flag=flag,
         )
 
-    def validate_params(self):
+    def validate_params(self) -> None:
         paraminfo: typing.Optional[param_info.ParamInfo[typing.Any]]
         pos_params: typing.List[param_info.ParamInfo[typing.Any]] = []
         kw_params: typing.Dict[str, param_info.ParamInfo[typing.Any]] = {}

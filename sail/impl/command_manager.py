@@ -20,7 +20,7 @@ _LOGGER = logging.getLogger("sail.command_manager")
 P = typing.ParamSpec("P")
 T = typing.TypeVar("T")
 
-CommandMetadata = typing.Tuple[str | None, str | None, str | None]
+CommandMetadata = typing.Tuple[typing.Optional[str], typing.Optional[str], typing.Optional[str]]
 
 
 @attr.define()

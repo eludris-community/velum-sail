@@ -27,7 +27,9 @@ class CommandManager(typing.Protocol):
         ...
 
     @staticmethod
-    def prepare(content: str) -> typing.Tuple[str, str, str] | typing.Tuple[None, None, None]:
+    def prepare(
+        content: str,
+    ) -> typing.Tuple[typing.Optional[str], typing.Optional[str], typing.Optional[str]]:
         ...
 
     async def try_invoke(self, event: MessageCreateEvent) -> None:

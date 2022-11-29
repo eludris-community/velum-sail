@@ -26,5 +26,5 @@ class Command(typing.Protocol[P, T_co]):
         event: message_events.MessageCreateEvent,
         /,
         **__kwargs: typing.Any,
-    ):
+    ) -> None:
         ...

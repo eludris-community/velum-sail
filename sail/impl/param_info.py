@@ -28,7 +28,7 @@ class ParamInfo(typing.Generic[T]):
     greedy: bool = attr.field(default=False, kw_only=True)
     flag: bool = attr.field(default=False, kw_only=True)
 
-    def __attrs_post_init__(self):
+    def __attrs_post_init__(self) -> None:
         if self.greedy and not self.container:
             raise TypeError("Greedy parameters must be have a container of some sort.")
 

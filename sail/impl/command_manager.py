@@ -109,19 +109,23 @@ class CommandManager(command_manager_trait.CommandManager):
         self.prepare = callback  # pyright: ignore[reportGeneralTypeIssues]
 
     @classmethod
-    def with_prefix(cls, prefix: str) -> typing_extensions.Self:
+    def with_prefix(cls, *prefixes: str) -> typing_extensions.Self:
         manager = cls()
-        manager.set_prepare_callback(generate_prefix_prepare(prefix))
+        manager.set_prepare_callback(generate_prefix_prepare(*prefixes))
 
         return manager
 
 
-def generate_prefix_prepare(prefix: str) -> typing.Callable[[str], CommandMetadata]:
+def generate_prefix_prepare(*prefixes: str) -> typing.Callable[[str], CommandMetadata]:
     def _prepare(
         content: str,
     ) -> typing.Tuple[typing.Optional[str], typing.Optional[str], typing.Optional[str]]:
         content = content.strip()
-        if not content.startswith(prefix):
+        for prefix in prefixes:
+            if content.startswith(prefix):
+                break
+
+        else:
             return (None, None, None)
 
         command, invocation = content[len(prefix) :].split(" ", 1)

@@ -1,3 +1,4 @@
+import abc
 import inspect
 import typing
 
@@ -49,6 +50,10 @@ class ParamInfo(typing.Generic[T]):
     @classmethod
     def from_parameter(cls, parameter: inspect.Parameter) -> typing_extensions.Self:
         inner, container, annotated_params = typing_utils.unpack_typehint(parameter.annotation)
+        if isinstance(container, abc.ABCMeta):
+            # If the container is some non-instantiable generic, default to list.
+            container = list
+
         greedy = typing_utils.SpecialType.GREEDY in annotated_params
         flag = parameter.kind is inspect.Parameter.KEYWORD_ONLY and inner is bool and not container
 
@@ -110,6 +115,10 @@ class ParamInfo(typing.Generic[T]):
             self.default = default
 
         if container:
+            if isinstance(container, abc.ABCMeta):
+                # If the container is some non-instantiable generic, default to list.
+                container = list
+
             if self.container is not None and not issubclass(container, self.container):
                 raise TypeError(
                     "The override container type must be a subtype of the existing container type."

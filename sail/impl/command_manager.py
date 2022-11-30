@@ -34,7 +34,7 @@ class CommandManager(command_manager_trait.CommandManager):
 
     async def try_invoke(self, event: velum.MessageCreateEvent) -> None:
         prefix, invoked_with, invocation = self.prepare(event.content)
-        if not invoked_with or not prefix or not invocation:
+        if invoked_with is None or prefix is None or invocation is None:
             return
 
         command = self._commands.get(invoked_with)

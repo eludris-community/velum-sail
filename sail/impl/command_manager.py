@@ -128,7 +128,7 @@ def generate_prefix_prepare(*prefixes: str) -> typing.Callable[[str], CommandMet
         else:
             return (None, None, None)
 
-        command, invocation = content[len(prefix) :].split(" ", 1)
+        command, _, invocation = content[len(prefix) :].lstrip().partition(" ")
         return (prefix, command.strip(), invocation.strip())
 
     return _prepare

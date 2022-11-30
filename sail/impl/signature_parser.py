@@ -206,13 +206,17 @@ class SignatureParser(signature_parser_trait.SignatureParser):
         remaining = "', '".join(arg for arg in arg_iter)
         if remaining:
             # Any remaining args should raise.
-            raise RuntimeError(f"Supplied too many arguments: '{remaining}' remain unused.")
+            raise RuntimeError(f"Got too many positional arguments: '{remaining}' remain unused.")
 
         return arg_results
 
     def _parse_kw(
         self, kwargs: typing.Mapping[str, typing.Sequence[str]]
     ) -> typing.Mapping[str, typing.Any]:
+        if not set(self.kw_params).issuperset(kwargs):
+            remainder = "', '".join(set(self.kw_params).symmetric_difference(kwargs))
+            raise RuntimeError(f"Got one or more unexpected keyword arguments: '{remainder}'")
+
         carry: typing.Sequence[typing.Any] = []
         kwarg_results: typing.Mapping[str, typing.Any] = {}
         for name, param in self.kw_params.items():

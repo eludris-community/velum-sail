@@ -238,7 +238,7 @@ class SignatureParser(signature_parser_trait.SignatureParser):
                 )
 
             else:
-                kwarg_results[name] = carry
+                kwarg_results[name] = carry[0]
                 carry.clear()
 
         return kwarg_results

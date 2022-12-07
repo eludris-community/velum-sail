@@ -12,7 +12,7 @@ class SailError(errors.VelumError):
 
 
 @attr.define(auto_exc=True, repr=False, init=False, slots=False)
-class ConversionError(Exception):
+class ConversionError(SailError):
 
     argument: str
     type: typing.Type[typing.Any]

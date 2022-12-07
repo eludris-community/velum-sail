@@ -30,26 +30,24 @@ def parse_content(
 ) -> typing.Tuple[typing.Sequence[str], typing.Mapping[str, typing.Sequence[str]]]:
     content_iter = iter(content)
 
-    name: str = ""
-    value: str = ""
+    name: typing.List[str] = []
+    value: typing.List[str] = []
     args: typing.List[str] = []
     kwargs: typing.Dict[str, typing.List[str]] = {}
 
     def finalise_argument():
-        nonlocal name, value
-
         if name:
-            kwargs.setdefault(name, []).append(value)
+            kwargs.setdefault("".join(name), []).append("".join(value))
         else:
-            args.append(value)
+            args.append("".join(value))
 
-        name = ""
-        value = ""
+        name.clear()
+        value.clear()
 
     for char in content_iter:
         if char == "\\":
             # Escape, immediately consume next char.
-            value += next(content_iter, "")
+            value.append(next(content_iter, ""))
 
         elif char in _QUOTES:
             # Quoted arg, figure out closing delimiter and consume until we find it.
@@ -58,10 +56,10 @@ def parse_content(
                 if char == "\\":
                     # Immediately consume the next character so as to not exit
                     # the loop on an escaped closing delimiter.
-                    value += next(content_iter, "")
+                    value.append(next(content_iter, ""))
 
                 else:
-                    value += char
+                    value.append(char)
 
             finalise_argument()
 
@@ -74,13 +72,13 @@ def parse_content(
                 # Double dash, set flag and consume until next space.
                 dashes = 2
                 while (char := next(content_iter, " ")) != " ":
-                    name += char
+                    name.append(char)
 
             else:
                 # Single dash, set flag and consume next char.
                 dashes = 1
                 if char != " ":
-                    name += char
+                    name.append(char)
 
             if not name:
                 # No name after the dashes, add it as a positional.
@@ -93,7 +91,7 @@ def parse_content(
 
         else:
             # Standard character, positional arg or the value of a dashed arg.
-            value += char
+            value.append(char)
 
     if name or value:
         # Finished loop, finalise leftover data, if any.

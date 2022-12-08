@@ -14,8 +14,8 @@ velum = {git = "https://github.com/chromosomologist/velum"}
 pyright = "^1.1.280"
 isort = "^5.10.1"
 black = "^22.10.0"
-flake8 = "^5.0.4"
 slotscheck = "^0.16.1"
+ruff = "^0.0.169"
 
 [build-system]
 requires = ["poetry-core"]
@@ -35,3 +35,31 @@ typeCheckingMode = "strict"
 [tool.black]
 line-length = 100
 target-version = ["py310"]
+
+[tool.slotscheck]
+strict-imports = true
+require-superclass = true
+require-subclass = true
+exclude-classes = """
+(
+    ^velum\\.internal\\.typing_patches:WSMessage$
+    |^velum\\.internal\\.data_binding:(_JSONLoader|_JSONDumper)$
+)
+"""
+
+[tool.ruff]
+line-length = 105
+
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    # "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+
+target-version = "py310"
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401", "F403"]

@@ -154,8 +154,6 @@ class SequenceParser(_ContainerParser[SequenceT]):
 
     def __attrs_post_init__(self) -> None:
         # In case some non-instantiable generic was passed, default to list.
-        print("B", self.collection_type, isinstance(self.collection_type, abc.ABC))
-
         if isinstance(self.collection_type, abc.ABCMeta):
             self.collection_type = typing.cast(typing.Type[SequenceT], list)
 
@@ -165,8 +163,6 @@ class SetParser(_ContainerParser[SetT]):
 
     def __attrs_post_init__(self) -> None:
         # In case some non-instantiable generic was passed, default to set.
-        print("A", self.collection_type, isinstance(self.collection_type, abc.ABCMeta))
-
         if isinstance(self.collection_type, abc.ABCMeta):
             self.collection_type = typing.cast(typing.Type[SetT], set)
 

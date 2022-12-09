@@ -1,4 +1,5 @@
 import logging
+import time
 
 from velum import models
 from velum.events import message_events
@@ -12,6 +13,8 @@ async def test_invoke(manager: command_manager.CommandManager, invocation: str) 
     debug_message = models.Message(author="DEBUG", content=invocation)
     debug_event = message_events.MessageCreateEvent(message=debug_message)
 
+    start = time.monotonic()
+
     try:
         await manager.try_invoke(debug_event)
 
@@ -24,4 +27,5 @@ async def test_invoke(manager: command_manager.CommandManager, invocation: str) 
         )
 
     else:
-        _LOGGER.debug("Test invocation successful.")
+        duration = (time.monotonic() - start) * 1000
+        _LOGGER.debug(f"Test invocation successful in {duration:.3f} [ms].")

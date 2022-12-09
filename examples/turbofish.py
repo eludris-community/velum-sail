@@ -3,7 +3,6 @@ import re
 import typing
 
 import velum
-
 import sail
 
 # ...But what if standard prefixes aren't cool enough?
@@ -27,11 +26,11 @@ def prepare(content: str) -> typing.Tuple[str | None, str | None, str | None]:
 # If all three return something other than None, the command manager will try
 # to invoke the command.
 
-# Next, we create a bot and command manager.
+# Next, we create a client and command manager.
 
-bot = velum.GatewayBot()
+client = velum.GatewayClient()
 manager = sail.CommandManager()
-manager.bind_to_app(bot)
+manager.bind_to_app(client)
 
 
 # We then bind our custom prepare callback to the manager:
@@ -44,7 +43,7 @@ manager.set_prepare_callback(prepare)
 
 @manager.command(aliases=["cool-alias", "not_so_cool_alias"])
 async def my_command(ctx: sail.Context, x: typing.List[int], *, y: bool) -> None:
-    await bot.rest.send_message(
+    await client.rest.send_message(
         "sail",
         f"Got {len(x)} number(s): {x}. "
         f"Flag y was set to {y}. "
@@ -59,6 +58,6 @@ async def my_command(ctx: sail.Context, x: typing.List[int], *, y: bool) -> None
 # ::<not_so_cool_alias> 1 2 3 4
 # ...
 
-# Finally, we run the bot as per usual.
+# Finally, we run the client as per usual.
 
-asyncio.run(bot.start())
+asyncio.run(client.start())

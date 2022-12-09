@@ -2,22 +2,21 @@ import asyncio
 import typing
 
 import velum
-
 import sail
 
-# To create commands, we first create a bot as per usual.
+# To create commands, we first create a client as per usual.
 # Next, we create a CommandManager. To set a prefix for the command manager,
 # simply use the classmethod `with_prefix(<prefix>)`.
 
-bot = velum.GatewayBot()
+client = velum.GatewayClient()
 manager = sail.CommandManager.with_prefix("!")
 
 
-# We then bind the command manager to the bot. This creates a listener for
+# We then bind the command manager to the client. This creates a listener for
 # `velum.MessageCreateEvent`s, that will automatically try to dispatch commands
 # if a message with correct prefix and command name was found.
 
-manager.bind_to_app(bot)
+manager.bind_to_app(client)
 
 
 # Now, we can add commands to the command manager.
@@ -34,7 +33,7 @@ manager.bind_to_app(bot)
 
 @manager.command(aliases=["cool-alias", "not_so_cool_alias"])
 async def my_command(ctx: sail.Context, x: typing.List[int], *, y: bool) -> None:
-    await bot.rest.send_message(
+    await client.rest.send_message(
         "sail",
         f"Got {len(x)} number(s): {x}. "
         f"Flag y was set to {y}. "
@@ -42,11 +41,11 @@ async def my_command(ctx: sail.Context, x: typing.List[int], *, y: bool) -> None
     )
 
 
-# Finally, we run the bot as per usual.
+# Finally, we run the client as per usual.
 # The command can now be invoked as e.g.
 # "!my_command 1 2 3 4 -y"
 # "!cool-alias 5 6"
 # "!not_so_cool_alias 7 8 9"
 # ...
 
-asyncio.run(bot.start())
+asyncio.run(client.start())

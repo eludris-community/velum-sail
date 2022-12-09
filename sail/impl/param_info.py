@@ -141,10 +141,9 @@ class ParamInfo(typing.Generic[T]):
             self.default = default
 
         if container_parser:
-            if (
-                self.container_parser.__type__ is not None
-                and not issubclass(container_parser.__type__, self.container_parser.__type__)
-            ):
+            _, container, _ = typing_utils.unpack_typehint(container_parser.__type__)
+
+            if container and not issubclass(container, self.container_parser.__type__):
                 raise TypeError(
                     "The override container parser's type must be a subtype of"
                     " the existing container parser's type."

@@ -5,6 +5,7 @@ from sail.errors import *
 from sail.impl.command import *
 from sail.impl.command_manager import *
 from sail.internal.typing_utils import Greedy as Greedy
+from sail.internal.typing_utils import JoinedStr as JoinedStr
 from sail.internal.undefined import UNDEFINED as UNDEFINED
 from sail.internal.undefined import UndefinedOr as UndefinedOr
 from sail.internal.undefined import UndefinedType as UndefinedType

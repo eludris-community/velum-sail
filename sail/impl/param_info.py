@@ -21,6 +21,7 @@ AnyContainer = typing.Container[typing.Any]
 def _determine_type_parser(
     type_: typing.Type[typing.Any],
     parameter_name: str,
+    annotated_params: typing.Sequence[typing.Any],
 ) -> argument_parser_trait.ArgumentParser[typing.Any]:
     if type_ is empty or type_ is typing.Any or issubclass(type_, str):
         return argument_parser.StringParser()
@@ -37,8 +38,11 @@ def _determine_type_parser(
 def _determine_container_parser(
     type_: typing.Optional[typing.Type[AnyContainer]],
     parameter_name: str,
+    annotated_params: typing.Sequence[typing.Any],
 ) -> argument_parser_trait.ContainerParser[typing.Any]:
-    if type_ is None:
+    if typing_utils.SpecialType.JOINEDSTR in annotated_params:
+        return argument_parser.JoinedStringParser()
+    elif type_ is None:
         return argument_parser.UnpackParser()
     elif issubclass(type_, typing.Sequence):
         return argument_parser.SequenceParser(type_)
@@ -103,8 +107,8 @@ class ParamInfo(typing.Generic[T]):
 
         return cls(
             parameter.name,
-            _determine_type_parser(inner, parameter.name),
-            _determine_container_parser(container, parameter.name),
+            _determine_type_parser(inner, parameter.name, annotated_params),
+            _determine_container_parser(container, parameter.name, annotated_params),
             default=parameter.default,
             greedy=greedy,
             flag=flag,

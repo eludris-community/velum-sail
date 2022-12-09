@@ -200,3 +200,27 @@ class UnpackParser(argument_parser_trait.ContainerParser[typing.Any]):
             self.__type__,
             TypeError("Got 0 arguments for required parameter.")
         ) from None
+
+@attr.define()
+class JoinedStringParser(argument_parser_trait.ContainerParser[str]):
+
+    separator: str = attr.field(default=" ")
+
+    @property
+    def __type__(self) -> typing.Type[str]:
+        return str
+
+    def parse(
+        self,
+        argument: typing.Sequence[object],
+        default: str | empty.Empty = empty.EMPTY
+    ) -> str:
+        if not argument:
+            if empty.is_nonempty(default):
+                return default
+
+            raise TypeError("Got 0 arguments for required parameter.")
+    
+        assert all(isinstance(arg, str) for arg in argument)
+
+        return self.separator.join(typing.cast(typing.Sequence[str], argument))

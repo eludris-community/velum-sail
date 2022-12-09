@@ -3,6 +3,7 @@ import typing
 
 __all__: typing.Sequence[str] = (
     "Greedy",
+    "JoinedStr",
     "SpecialType",
     "unpack_typehint",
 )
@@ -10,11 +11,12 @@ __all__: typing.Sequence[str] = (
 
 class SpecialType(enum.Enum):
     GREEDY = enum.auto()
-    # Perhaps more later?
+    JOINEDSTR = enum.auto()
 
 
 CollectionT = typing.TypeVar("CollectionT", bound=typing.Collection[typing.Any])
 Greedy = typing.Annotated[CollectionT, SpecialType.GREEDY]
+JoinedStr = typing.Annotated[str, SpecialType.JOINEDSTR]
 
 
 def unpack_typehint(

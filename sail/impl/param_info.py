@@ -1,5 +1,5 @@
-import abc
 import inspect
+import types
 import typing
 
 import attr
@@ -15,21 +15,54 @@ __all__: typing.Sequence[str] = ("ParamInfo",)
 
 
 T = typing.TypeVar("T")
-AnyCollectionT = typing.Type[typing.Collection[typing.Any]]
+AnyContainer = typing.Container[typing.Any]
+
+
+def _determine_type_parser(
+    type_: typing.Type[typing.Any],
+    parameter_name: str,
+) -> argument_parser_trait.ArgumentParser[typing.Any]:
+    if type_ is empty or type_ is typing.Any or issubclass(type_, str):
+        return argument_parser.StringParser()
+    elif issubclass(type_, bool):
+        return argument_parser.BoolParser()
+    elif issubclass(type_, int):
+        return argument_parser.NumberParser(decimal=False)
+    elif issubclass(type_, float):
+        return argument_parser.NumberParser()
+
+    raise TypeError(f"Unsupported type annotation for parameter {parameter_name}.")
+
+
+def _determine_container_parser(
+    type_: typing.Optional[typing.Type[AnyContainer]],
+    parameter_name: str,
+) -> argument_parser_trait.ContainerParser[typing.Any]:
+    if type_ is None:
+        return argument_parser.UnpackParser()
+    elif issubclass(type_, typing.Sequence):
+        return argument_parser.SequenceParser(type_)
+    elif issubclass(type_, typing.AbstractSet):
+        return argument_parser.SetParser(type_)
+
+    raise TypeError(f"Unsupported container type annotation for parameter {parameter_name}.")
 
 
 @attr.define()
 class ParamInfo(typing.Generic[T]):
     name: str = attr.field()
     parser: argument_parser_trait.ArgumentParser[T] = attr.field()
+    container_parser: argument_parser_trait.ContainerParser[typing.Any] = attr.field(default=None)
     default: empty.EmptyOr[T] = attr.field(default=empty.EMPTY, kw_only=True)
-    container: typing.Optional[AnyCollectionT] = attr.field(default=None, kw_only=True)
     short: typing.Optional[str] = attr.field(default=None, kw_only=True)
     greedy: bool = attr.field(default=False, kw_only=True)
     flag: bool = attr.field(default=False, kw_only=True)
 
     def __attrs_post_init__(self) -> None:
-        if self.greedy and not self.container:
+        if self.container_parser is None:
+            self.container_parser = argument_parser.UnpackParser()
+
+        if self.greedy and isinstance(self.container_parser, argument_parser.UnpackParser):
             raise TypeError("Greedy parameters must be have a container of some sort.")
 
         if self.is_flag and self.greedy:
@@ -47,12 +80,13 @@ class ParamInfo(typing.Generic[T]):
     def is_flag(self) -> bool:
         return self.flag or self.short is not None
 
+    @property
+    def has_container(self) -> bool:
+        return self.container_parser.__type__ is not types.NoneType
+
     @classmethod
     def from_parameter(cls, parameter: inspect.Parameter) -> typing_extensions.Self:
         inner, container, annotated_params = typing_utils.unpack_typehint(parameter.annotation)
-        if isinstance(container, abc.ABCMeta):
-            # If the container is some non-instantiable generic, default to list.
-            container = list
 
         greedy = typing_utils.SpecialType.GREEDY in annotated_params
         flag = parameter.kind is inspect.Parameter.KEYWORD_ONLY and inner is bool and not container
@@ -66,35 +100,27 @@ class ParamInfo(typing.Generic[T]):
         if greedy and not container:
             raise TypeError("Greedy parameters must be have a container of some sort.")
 
-        if inner is empty or inner is typing.Any or issubclass(inner, str):
-            parser = argument_parser.StringParser()
-        elif issubclass(inner, bool):
-            parser = argument_parser.BoolParser()
-        elif issubclass(inner, int):
-            parser = argument_parser.NumberParser(decimal=False)
-        elif issubclass(inner, float):
-            parser = argument_parser.NumberParser()
-        else:
-            raise TypeError(f"Unsupported type annotation for parameter {parameter.name}.")
 
         return cls(
             parameter.name,
-            parser,
+            _determine_type_parser(inner, parameter.name),
+            _determine_container_parser(container, parameter.name),
             default=parameter.default,
-            container=container,
             greedy=greedy,
             flag=flag,
         )
 
-    def override_typesafe(
+    def override_typesafe(  # noqa: C901
         self,
         /,
         *,
         parser: undefined.UndefinedOr[
             argument_parser_trait.ArgumentParser[T]
         ] = undefined.UNDEFINED,
+        container_parser: undefined.UndefinedOr[
+            argument_parser_trait.ContainerParser[AnyContainer],
+        ] = undefined.UNDEFINED,
         default: undefined.UndefinedOr[T] = undefined.UNDEFINED,
-        container: undefined.UndefinedOr[AnyCollectionT] = undefined.UNDEFINED,
         short: undefined.UndefinedOr[str] = undefined.UNDEFINED,
         greedy: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
         flag: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
@@ -114,17 +140,17 @@ class ParamInfo(typing.Generic[T]):
 
             self.default = default
 
-        if container:
-            if isinstance(container, abc.ABCMeta):
-                # If the container is some non-instantiable generic, default to list.
-                container = list
-
-            if self.container is not None and not issubclass(container, self.container):
+        if container_parser:
+            if (
+                self.container_parser.__type__ is not None
+                and not issubclass(container_parser.__type__, self.container_parser.__type__)
+            ):
                 raise TypeError(
-                    "The override container type must be a subtype of the existing container type."
+                    "The override container parser's type must be a subtype of"
+                    " the existing container parser's type."
                 )
 
-            self.container = container
+            self.container_parser = container_parser
 
         if short:
             self.short = short

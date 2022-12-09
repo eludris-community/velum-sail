@@ -30,10 +30,10 @@ class SignatureParser(signature_parser_trait.SignatureParser):
         parser: undefined.UndefinedOr[
             argument_parser_trait.ArgumentParser[T]
         ] = undefined.UNDEFINED,
-        default: undefined.UndefinedOr[T] = undefined.UNDEFINED,
         container_parser: undefined.UndefinedOr[
-            argument_parser_trait.ContainerParser[typing.Container[T]]
+            argument_parser_trait.ContainerParser[typing.Any]
         ] = undefined.UNDEFINED,
+        default: undefined.UndefinedOr[T] = undefined.UNDEFINED,
         short: undefined.UndefinedOr[str] = undefined.UNDEFINED,
         greedy: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
         flag: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
@@ -52,8 +52,8 @@ class SignatureParser(signature_parser_trait.SignatureParser):
 
         existing.override_typesafe(
             parser=parser,
-            default=default,
             container_parser=container_parser,
+            default=default,
             short=short,
             greedy=greedy,
             flag=flag,

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import abc
 import attr
+import types
 import typing
 
 from sail import errors
@@ -10,6 +12,7 @@ from sail.traits import argument_parser_trait
 __all__: typing.Sequence[str] = ("NumberParser", "BoolParser", "StringParser")
 
 
+T = typing.TypeVar("T")
 NumberT = typing.TypeVar("NumberT", bound=int | float)
 ContainerT = typing.TypeVar("ContainerT", bound=typing.Container[typing.Any])
 SequenceT = typing.TypeVar("SequenceT", bound=typing.Sequence[typing.Any])
@@ -86,9 +89,11 @@ class BoolParser(argument_parser_trait.ArgumentParser[bool]):
         argument: str,
         default: empty.EmptyOr[bool] = empty.EMPTY,
     ) -> bool:
-        if argument.lower() in ["yes", "y", "true", "t", "1", ""]:
+        argument = argument.lower()
+
+        if argument in ["yes", "y", "true", "t", "1"]:
             return True
-        elif argument.lower() in ["no", "n", "false", "f", "0"]:
+        elif argument in ["no", "n", "false", "f", "0"]:
             return False
         else:
             if empty.is_nonempty(default):
@@ -121,7 +126,7 @@ class StringParser(argument_parser_trait.ArgumentParser[str]):
 @attr.define()
 class _ContainerParser(argument_parser_trait.ContainerParser[ContainerT]):
     # NOTE: This class is private because a container would also allow
-    # mappings to be used. Instead, we make two subclasses for sequences
+    # mappings to be used. Instead, we make subclasses for sequences
     # and sets, as a mapping parser would require different logic.
 
     collection_type: typing.Type[ContainerT] = attr.field()
@@ -132,7 +137,7 @@ class _ContainerParser(argument_parser_trait.ContainerParser[ContainerT]):
 
     def parse(
         self,
-        argument: typing.Iterable[str],
+        argument: typing.Iterable[object],
         default: ContainerT | empty.Empty = empty.EMPTY
     ) -> ContainerT:
         try:
@@ -144,9 +149,58 @@ class _ContainerParser(argument_parser_trait.ContainerParser[ContainerT]):
             raise errors.ConversionError(argument, self.collection_type, exc) from None
 
 
+@attr.define()
 class SequenceParser(_ContainerParser[SequenceT]):
-    __slots__: typing.Sequence[str] = ()
+
+    def __attrs_post_init__(self) -> None:
+        # In case some non-instantiable generic was passed, default to list.
+        print("B", self.collection_type, isinstance(self.collection_type, abc.ABC))
+
+        if isinstance(self.collection_type, abc.ABCMeta):
+            self.collection_type = typing.cast(typing.Type[SequenceT], list)
 
 
+@attr.define()
 class SetParser(_ContainerParser[SetT]):
-    __slots__: typing.Sequence[str] = ()
+
+    def __attrs_post_init__(self) -> None:
+        # In case some non-instantiable generic was passed, default to set.
+        print("A", self.collection_type, isinstance(self.collection_type, abc.ABCMeta))
+
+        if isinstance(self.collection_type, abc.ABCMeta):
+            self.collection_type = typing.cast(typing.Type[SetT], set)
+
+
+@attr.define()
+class UnpackParser(argument_parser_trait.ContainerParser[typing.Any]):
+    # NOTE: Intentionally somewhat hacky with typing.Any, as this parser
+    #       will be used to unpack a container to its first argument,
+    #       and a container parser normally expects to return a container.
+
+    @property
+    def __type__(self) -> typing.Type[None]:
+        return types.NoneType
+
+    def parse(
+        self,
+        argument: typing.Sequence[object],
+        default: typing.Any | empty.Empty = empty.EMPTY
+    ) -> typing.Any:
+        if len(argument) == 1:
+            return argument[0]
+    
+        elif len(argument) > 1:
+            raise errors.ConversionError(
+                argument,
+                self.__type__,
+                TypeError("Got more than 1 argument for a parameter without a container type.")
+            )
+    
+        elif empty.is_nonempty(default):
+            return default
+
+        raise errors.ConversionError(
+            argument,
+            self.__type__,
+            TypeError("Got 0 arguments for required parameter.")
+        ) from None

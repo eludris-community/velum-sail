@@ -29,7 +29,7 @@ class ContainerParser(typing.Protocol[ContainerT]):
 
     def parse(
         self,
-        argument: typing.Iterable[str],
+        argument: typing.Sequence[object],
         default: ContainerT | empty.Empty = empty.EMPTY
     ) -> ContainerT:
         ...

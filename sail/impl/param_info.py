@@ -82,7 +82,7 @@ class ParamInfo(typing.Generic[T]):
 
     @property
     def has_container(self) -> bool:
-        return self.container_parser.__type__ is not types.NoneType
+        return self.container_parser.__type__ is not types.NoneType  # noqa: E721
 
     @classmethod
     def from_parameter(cls, parameter: inspect.Parameter) -> typing_extensions.Self:

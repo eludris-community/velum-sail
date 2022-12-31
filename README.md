@@ -1,6 +1,6 @@
 # Velum-Sail
 
-Velum-Sail is a command handler for [Velum](https://github.com/Chromosomologist/velum), which in turn is a wrapper for the [Eludris](https://eludris.pages.dev/#/) API. It expands on velum by adding shell-like text-based commands, a command handler that can hook into a `velum.GatewayBot`, and extensions to keep your files organised (coming soon<sup>TM</sup>).
+Velum-Sail is a command handler for [Velum](https://github.com/eludris-community/velum), which in turn is a wrapper for the [Eludris](https://eludris.pages.dev/#/) API. It expands on velum by adding shell-like text-based commands, a command handler that can hook into a `velum.GatewayClient`, and extensions to keep your files organised (coming soon<sup>TM</sup>).
 
 Please keep in mind that this library is still in its infancy, and some much needed features such as documentation are coming in the nearTM future.
 
@@ -11,7 +11,7 @@ Please keep in mind that this library is still in its infancy, and some much nee
 
 To install the library, currently the only option is to install it off of this very github page.
 ```
-python3 -m pip install -U git+https://github.com/Chromosomologist/velum-sail
+python3 -m pip install -U git+https://github.com/eludris-community/velum-sail
 ```
 
 
@@ -25,7 +25,7 @@ import velum
 import sail
 
 
-bot = velum.GatewayBot()
+bot = velum.GatewayClient()
 manager = sail.CommandManager.with_prefix("!")
 manager.bind_to_app(bot)
 
@@ -38,4 +38,4 @@ async def my_command(ctx: sail.Context, x: typing.List[bool]) -> None:
 asyncio.run(bot.start())
 ```
 
-For more in-depth examples, please see the [examples directory](https://github.com/Chromosomologist/velum-sail/tree/master/examples).
+For more in-depth examples, please see the [examples directory](https://github.com/eludris-community/velum-sail/tree/master/examples).

@@ -8,7 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 typing-extensions = "^4.4.0"
-velum = {git = "https://github.com/eludirs-community/velum"}
+velum = {git = "https://github.com/eludris-community/velum"}
 
 [tool.poetry.group.dev.dependencies]
 pyright = "^1.1.280"

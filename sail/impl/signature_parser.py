@@ -5,6 +5,7 @@ import attr
 
 from sail import errors
 from sail.impl import param_info
+from sail.internal import empty
 from sail.internal import parser
 from sail.internal import undefined
 from sail.traits import argument_parser_trait
@@ -158,7 +159,7 @@ class SignatureParser(signature_parser_trait.SignatureParser):
         self,
         param: param_info.ParamInfo[typing.Any],
     ) -> typing.Any:
-        if not param.default:
+        if not empty.is_nonempty(param.default):
             raise RuntimeError(f"Required parameter {param.name} was not supplied a value.")
 
         return param.container_parser.parse([param.default])

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import abc
-import attr
 import types
 import typing
+
+import attr
 
 from sail import errors
 from sail.internal import empty
@@ -136,9 +137,7 @@ class _ContainerParser(argument_parser_trait.ContainerParser[ContainerT]):
         return self.collection_type
 
     def parse(
-        self,
-        argument: typing.Iterable[object],
-        default: ContainerT | empty.Empty = empty.EMPTY
+        self, argument: typing.Iterable[object], default: ContainerT | empty.Empty = empty.EMPTY
     ) -> ContainerT:
         try:
             return self.collection_type.__call__(argument)
@@ -151,7 +150,6 @@ class _ContainerParser(argument_parser_trait.ContainerParser[ContainerT]):
 
 @attr.define()
 class SequenceParser(_ContainerParser[SequenceT]):
-
     def __attrs_post_init__(self) -> None:
         # In case some non-instantiable generic was passed, default to list.
         if isinstance(self.collection_type, abc.ABCMeta):
@@ -160,7 +158,6 @@ class SequenceParser(_ContainerParser[SequenceT]):
 
 @attr.define()
 class SetParser(_ContainerParser[SetT]):
-
     def __attrs_post_init__(self) -> None:
         # In case some non-instantiable generic was passed, default to set.
         if isinstance(self.collection_type, abc.ABCMeta):
@@ -178,28 +175,25 @@ class UnpackParser(argument_parser_trait.ContainerParser[typing.Any]):
         return types.NoneType
 
     def parse(
-        self,
-        argument: typing.Sequence[object],
-        default: typing.Any | empty.Empty = empty.EMPTY
+        self, argument: typing.Sequence[object], default: typing.Any | empty.Empty = empty.EMPTY
     ) -> typing.Any:
         if len(argument) == 1:
             return argument[0]
-    
+
         elif len(argument) > 1:
             raise errors.ConversionError(
                 argument,
                 self.__type__,
-                TypeError("Got more than 1 argument for a parameter without a container type.")
+                TypeError("Got more than 1 argument for a parameter without a container type."),
             )
-    
+
         elif empty.is_nonempty(default):
             return default
 
         raise errors.ConversionError(
-            argument,
-            self.__type__,
-            TypeError("Got 0 arguments for required parameter.")
+            argument, self.__type__, TypeError("Got 0 arguments for required parameter.")
         ) from None
+
 
 @attr.define()
 class JoinedStringParser(argument_parser_trait.ContainerParser[str]):
@@ -211,16 +205,14 @@ class JoinedStringParser(argument_parser_trait.ContainerParser[str]):
         return str
 
     def parse(
-        self,
-        argument: typing.Sequence[object],
-        default: str | empty.Empty = empty.EMPTY
+        self, argument: typing.Sequence[object], default: str | empty.Empty = empty.EMPTY
     ) -> str:
         if not argument:
             if empty.is_nonempty(default):
                 return default
 
             raise TypeError("Got 0 arguments for required parameter.")
-    
+
         assert all(isinstance(arg, str) for arg in argument)
 
         return self.separator.join(typing.cast(typing.Sequence[str], argument))

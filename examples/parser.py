@@ -2,8 +2,8 @@ import asyncio
 import typing
 
 import velum
-import sail
 
+import sail
 
 # Sail implements a bunch of parsers to convert your bot's users' string inputs
 # to all kinds of types. In most cases, this should be enough to work with to
@@ -34,12 +34,11 @@ manager.bind_to_app(client)
 
 import math
 
-from sail.traits import argument_parser_trait
 from sail.internal import empty
+from sail.traits import argument_parser_trait
 
 
 class FloatParser(argument_parser_trait.ArgumentParser[float]):
-
     @property
     def __type__(self) -> typing.Type[float]:
         return float
@@ -70,6 +69,7 @@ class FloatParser(argument_parser_trait.ArgumentParser[float]):
 
 # Now we can use this custom parser as part of a command:
 
+
 @sail.param("number", parser=FloatParser())
 @manager.command()
 async def cool_floats(ctx: sail.Context, number: float):
@@ -94,8 +94,8 @@ async def cool_floats(ctx: sail.Context, number: float):
 # Now, for sake of illustration, we will make a custom container parser for
 # lists of strings, that filters out any strings that do not start with "@".
 
-class MentionContainerParser(argument_parser_trait.ContainerParser[typing.List[str]]):
 
+class MentionContainerParser(argument_parser_trait.ContainerParser[typing.List[str]]):
     @property
     def __type__(self) -> typing.Type[typing.List[str]]:
         return typing.List[str]
@@ -103,13 +103,10 @@ class MentionContainerParser(argument_parser_trait.ContainerParser[typing.List[s
     def parse(
         self,
         argument: typing.Sequence[object],
-        default: typing.List[str] | empty.Empty = empty.EMPTY
+        default: typing.List[str] | empty.Empty = empty.EMPTY,
     ) -> typing.List[str]:
         parsed = [  # fmt: skip
-            arg
-            for arg in argument
-            if isinstance(arg, str)
-            and arg.startswith("@")
+            arg for arg in argument if isinstance(arg, str) and arg.startswith("@")
         ]
 
         if parsed:
@@ -122,6 +119,7 @@ class MentionContainerParser(argument_parser_trait.ContainerParser[typing.List[s
 
 
 # And similarly, this can be passed to a command as follows:
+
 
 @sail.param("mentions", container_parser=MentionContainerParser())
 @manager.command()

@@ -153,9 +153,7 @@ def param(
     name: str,
     /,
     *,
-    parser: undefined.UndefinedOr[
-        argument_parser_trait.ArgumentParser[T]
-    ] = undefined.UNDEFINED,
+    parser: undefined.UndefinedOr[argument_parser_trait.ArgumentParser[T]] = undefined.UNDEFINED,
     container_parser: undefined.UndefinedOr[
         argument_parser_trait.ContainerParser[typing.Any]
     ] = undefined.UNDEFINED,
@@ -164,7 +162,6 @@ def param(
     greedy: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
     flag: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
 ) -> typing.Callable[[CommandT], CommandT]:
-
     def wrapper(command: CommandT) -> CommandT:
         command.update_param_typesafe(
             name,
@@ -177,5 +174,5 @@ def param(
         )
 
         return command
-    
+
     return wrapper

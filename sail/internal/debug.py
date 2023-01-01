@@ -19,7 +19,7 @@ async def test_invoke(manager: command_manager.CommandManager, invocation: str) 
         await manager.try_invoke(debug_event)
 
     except Exception as exc:
-        exc_info = type(exc), exc, exc.__traceback__  #.tb_next if exc.__traceback__ else None
+        exc_info = type(exc), exc, exc.__traceback__  # .tb_next if exc.__traceback__ else None
 
         _LOGGER.error(
             "Test invocation failed.",

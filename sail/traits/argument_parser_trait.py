@@ -30,6 +30,6 @@ class ContainerParser(typing.Protocol[ContainerT]):
     def parse(
         self,
         argument: typing.Sequence[object],
-        default: ContainerT | empty.Empty = empty.EMPTY
+        default: ContainerT | empty.Empty = empty.EMPTY,
     ) -> ContainerT:
         ...

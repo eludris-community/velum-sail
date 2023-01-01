@@ -30,7 +30,7 @@ class CommandManager(command_manager_trait.CommandManager):
 
     @property
     def commands(self) -> typing.Sequence[command_trait.AnyCommand]:
-        return tuple(self.commands)
+        return tuple(self._commands.values())
 
     async def try_invoke(self, event: velum.MessageCreateEvent) -> None:
         prefix, invoked_with, invocation = self.prepare(event.content)

@@ -1,14 +1,10 @@
 import asyncio
-import logging
 import re
+import typing
 
 import velum
 
 import sail
-
-logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
-
 
 # Occasionally, the default string parser gets in your way.
 # Say you want to do something with codeblocks, where you do not want the
@@ -52,6 +48,30 @@ async def codeblock(ctx: sail.Context, codeblock: str) -> None:
     lang = groupdict["lang"]
     body = groupdict["body"]  # pyright: ignore  # noqa: F841
 
+    await client.rest.send_message("Sail", f"Evaluating your `{lang}` code...")
+
+    ...  # Actual code eval implementation...
+
+
+# However, we can make this a bit more powerful if we want.
+# If we do the regex parsing in the parser, we can actually provide separate
+# args/kwargs to the function:
+
+
+def improved_parser(
+    user_input: str,
+) -> typing.Tuple[typing.Sequence[str], typing.Dict[str, typing.Sequence[str]]]:
+    match = CODEBLOCK_RE.fullmatch(user_input)
+
+    if not match:
+        # This can be handled externally...
+        raise RuntimeError("Not a codeblock.")
+
+    return [match.group("lang"), match.group("body")], {}
+
+
+@manager.command(string_parser=improved_parser)
+async def cooler_codeblock(ctx: sail.Context, lang: str, body: str) -> None:
     await client.rest.send_message("Sail", f"Evaluating your `{lang}` code...")
 
     ...  # Actual code eval implementation...

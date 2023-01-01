@@ -25,7 +25,7 @@ _QUOTES: typing.Mapping[str, str] = {
 }
 
 
-def parse_content(
+def parse_content(  # noqa: C901
     content: str,
 ) -> typing.Tuple[typing.Sequence[str], typing.Mapping[str, typing.Sequence[str]]]:
     content_iter = iter(content)

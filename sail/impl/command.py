@@ -16,6 +16,7 @@ from sail.traits import command_trait
 __all__: typing.Sequence[str] = (
     "Command",
     "Context",
+    "param",
 )
 
 
@@ -29,6 +30,7 @@ CommandCallback = typing.Callable[
     typing.Concatenate["Context", P],
     typing.Coroutine[typing.Any, typing.Any, T],
 ]
+CommandT = typing.TypeVar("CommandT", bound="Command[typing.Any, typing.Any]")
 
 
 @attr.define()
@@ -92,8 +94,10 @@ class Command(command_trait.Command[P, T]):
         parser: undefined.UndefinedOr[
             argument_parser_trait.ArgumentParser[T]
         ] = undefined.UNDEFINED,
+        container_parser: undefined.UndefinedOr[
+            argument_parser_trait.ContainerParser[typing.Any]
+        ] = undefined.UNDEFINED,
         default: undefined.UndefinedOr[T] = undefined.UNDEFINED,
-        container: undefined.UndefinedOr[AnyCollectionT] = undefined.UNDEFINED,
         short: undefined.UndefinedOr[str] = undefined.UNDEFINED,
         greedy: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
         flag: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
@@ -101,8 +105,8 @@ class Command(command_trait.Command[P, T]):
         self._signature_parser.update_param_typesafe(
             name,
             parser=parser,
+            container_parser=container_parser,
             default=default,
-            container=container,
             short=short,
             greedy=greedy,
             flag=flag,
@@ -143,3 +147,35 @@ class Command(command_trait.Command[P, T]):
         ctx = Context(self, prefix, invoked_with, event, args, kwargs)
 
         await self.callback(ctx, *args, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
+
+
+def param(
+    name: str,
+    /,
+    *,
+    parser: undefined.UndefinedOr[
+        argument_parser_trait.ArgumentParser[T]
+    ] = undefined.UNDEFINED,
+    container_parser: undefined.UndefinedOr[
+        argument_parser_trait.ContainerParser[typing.Any]
+    ] = undefined.UNDEFINED,
+    default: undefined.UndefinedOr[T] = undefined.UNDEFINED,
+    short: undefined.UndefinedOr[str] = undefined.UNDEFINED,
+    greedy: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
+    flag: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
+) -> typing.Callable[[CommandT], CommandT]:
+
+    def wrapper(command: CommandT) -> CommandT:
+        command.update_param_typesafe(
+            name,
+            parser=parser,
+            container_parser=container_parser,
+            default=default,
+            short=short,
+            greedy=greedy,
+            flag=flag,
+        )
+
+        return command
+    
+    return wrapper

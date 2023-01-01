@@ -11,9 +11,10 @@ class SailError(errors.VelumError):
     pass
 
 
-@attr.define(auto_exc=True, repr=False, init=False, slots=False)
+@attr.define(auto_exc=True, repr=False, slots=False)
 class ConversionError(SailError):
 
-    argument: str
-    type: typing.Type[typing.Any]
-    exception: Exception
+    argument: typing.Any = attr.field()
+    type: typing.Type[typing.Any] = attr.field()
+    exception: Exception = attr.field()
+    converted: typing.Optional[typing.Any] = attr.field(default=None)

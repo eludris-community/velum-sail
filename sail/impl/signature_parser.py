@@ -1,3 +1,4 @@
+import types
 import typing
 
 import attr
@@ -19,8 +20,27 @@ AnyCollectionT = typing.Type[typing.Collection[typing.Any]]
 @attr.define()
 class SignatureParser(signature_parser_trait.SignatureParser):
 
-    pos_params: typing.Sequence[param_info.ParamInfo[typing.Any]] = attr.field()
-    kw_params: typing.Mapping[str, param_info.ParamInfo[typing.Any]] = attr.field()
+    _pos_params: typing.List[param_info.ParamInfo[typing.Any]] = attr.field()
+    _kw_params: typing.Dict[str, param_info.ParamInfo[typing.Any]] = attr.field()
+    # __alias_cache: _AliasCacheT = attr.field(init=False, factory=lambda: (0, {}))
+
+    @property
+    def pos_params(self) -> typing.Sequence[param_info.ParamInfo[typing.Any]]:
+        return tuple(self._pos_params)
+
+    @property
+    def kw_params(self) -> typing.Mapping[str, param_info.ParamInfo[typing.Any]]:
+        return types.MappingProxyType(self._kw_params)
+
+    @property
+    def alias_map(self) -> typing.Mapping[str, str]:
+        aliases: typing.Dict[str, str] = {}
+        for param in self._kw_params.values():
+            aliases[param.name] = param.name
+            if param.short:
+                aliases[param.short] = param.name
+
+        return aliases
 
     def update_param_typesafe(
         self,
@@ -38,18 +58,23 @@ class SignatureParser(signature_parser_trait.SignatureParser):
         greedy: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
         flag: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
     ) -> None:
-        if name in self.kw_params:
-            existing = self.kw_params[name]
+        if name in self._kw_params:
+            existing = self._kw_params[name]
         else:
-            for existing in self.pos_params:
+            for existing in self._pos_params:
                 if existing.name == name:
                     break
 
             else:
                 raise NameError("Could not find a param with name '{name}'.")
 
-        should_move = (existing.is_flag is False) and (flag is True)
+        # If the param used to be positional and is now a flag, it should
+        # be moved from pos_params to kw_params.
+        if not existing.is_flag and (flag or short):
+            self._pos_params.remove(existing)
+            self._kw_params[existing.name] = existing
 
+        # Finally, we update in-place.
         existing.override_typesafe(
             parser=parser,
             container_parser=container_parser,
@@ -58,10 +83,6 @@ class SignatureParser(signature_parser_trait.SignatureParser):
             greedy=greedy,
             flag=flag,
         )
-
-        if should_move:
-            self.pos_params = [param for param in self.pos_params if param is not existing]
-            self.kw_params = {**self.kw_params, existing.name: existing}
 
     def _consume_greedy_pos(
         self,
@@ -147,8 +168,8 @@ class SignatureParser(signature_parser_trait.SignatureParser):
         args: typing.Sequence[str],
         results_store: typing.List[typing.Any],
     ) -> typing.Sequence[typing.Any]:
-        n_pos = len(self.pos_params)
-        pos_iter = enumerate(self.pos_params, 1)
+        n_pos = len(self._pos_params)
+        pos_iter = enumerate(self._pos_params, 1)
         arg_iter = iter(args)
 
         # Temporary storage for parsed args, also used to carry args between iterations.
@@ -164,7 +185,7 @@ class SignatureParser(signature_parser_trait.SignatureParser):
 
                 # Keep parsing args until we fail, only then continue to next param.
                 results_store.append(
-                    self._consume_greedy_pos(arg_iter, param, self.pos_params[next_idx], carry)
+                    self._consume_greedy_pos(arg_iter, param, self._pos_params[next_idx], carry)
                 )
 
             elif param.has_container:
@@ -175,7 +196,7 @@ class SignatureParser(signature_parser_trait.SignatureParser):
 
                 # Non-greedily parse args, stop as soon as the next parser succeeds.
                 results_store.append(
-                    self._consume_nongreedy_pos(arg_iter, param, self.pos_params[next_idx], carry)
+                    self._consume_nongreedy_pos(arg_iter, param, self._pos_params[next_idx], carry)
                 )
 
             elif carry:
@@ -206,17 +227,34 @@ class SignatureParser(signature_parser_trait.SignatureParser):
 
         return results_store
 
+    def _preprocess_kw(
+        self,
+        kwargs: typing.Mapping[str, typing.Sequence[str]],
+        alias_map: typing.Mapping[str, str],
+    ) -> typing.Mapping[str, typing.Sequence[str]]:
+        unaliased: typing.Dict[str, typing.Sequence[str]] = {}
+        for key, value in kwargs.items():
+            unaliased[alias_map[key]] = value
+
+        return unaliased
+
     def _parse_kw(
         self,
         kwargs: typing.Mapping[str, typing.Sequence[str]],
         results_store: typing.Dict[str, typing.Any],
     ) -> typing.Mapping[str, typing.Any]:
-        if not set(self.kw_params).issuperset(kwargs):
-            remainder = "', '".join(set(self.kw_params).symmetric_difference(kwargs))
+
+        alias_map = self.alias_map
+        provided = set(kwargs)
+        if not provided.issubset(alias_map):
+            remainder = "', '".join(provided.difference(alias_map))
             raise RuntimeError(f"Got one or more unexpected keyword arguments: '{remainder}'")
 
+        # Unwrap aliases...
+        kwargs = self._preprocess_kw(kwargs, alias_map)
+
         carry: typing.Sequence[typing.Any] = []
-        for name, param in self.kw_params.items():
+        for name, param in self._kw_params.items():
             if param.type is bool:
                 results_store[name] = param.short in kwargs or param.name in kwargs
                 continue
@@ -257,14 +295,12 @@ class SignatureParser(signature_parser_trait.SignatureParser):
         kw_results: typing.Dict[str, typing.Any] = {}
         try:
             parsed_kwargs = self._parse_kw(kwargs, kw_results)
-        
+
         except errors.ConversionError as exc:
             exc.converted = kw_results
             raise exc
 
         return parsed_args, parsed_kwargs
-
-
 
     def parse(
         self,

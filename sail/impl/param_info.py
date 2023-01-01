@@ -82,7 +82,7 @@ class ParamInfo(typing.Generic[T]):
 
     @property
     def is_flag(self) -> bool:
-        return self.flag or self.short is not None
+        return self.flag or bool(self.short)
 
     @property
     def has_container(self) -> bool:
@@ -93,7 +93,7 @@ class ParamInfo(typing.Generic[T]):
         inner, container, annotated_params = typing_utils.unpack_typehint(parameter.annotation)
 
         greedy = typing_utils.SpecialType.GREEDY in annotated_params
-        flag = parameter.kind is inspect.Parameter.KEYWORD_ONLY and inner is bool and not container
+        flag = parameter.kind is inspect.Parameter.KEYWORD_ONLY
 
         if greedy and (parameter.kind is inspect.Parameter.KEYWORD_ONLY):
             raise TypeError("Keyword-only arguments cannot be greedy.")
@@ -103,7 +103,6 @@ class ParamInfo(typing.Generic[T]):
 
         if greedy and not container:
             raise TypeError("Greedy parameters must be have a container of some sort.")
-
 
         return cls(
             parameter.name,

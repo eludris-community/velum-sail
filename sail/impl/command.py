@@ -9,9 +9,11 @@ from velum.events import message_events
 from sail.impl import param_info
 from sail.impl import signature_parser
 from sail.internal import empty
+from sail.internal import parser
 from sail.internal import undefined
 from sail.traits import argument_parser_trait
 from sail.traits import command_trait
+from sail.traits import signature_parser_trait
 
 __all__: typing.Sequence[str] = (
     "Command",
@@ -59,9 +61,26 @@ class Command(command_trait.Command[P, T]):
     name: str = attr.field()
     description: str = attr.field()
     aliases: typing.Collection[str] = attr.field()
+    string_parser: parser.StringParserCallback = attr.field()
 
-    _signature: inspect.Signature = attr.field(repr=False)
-    _signature_parser: signature_parser.SignatureParser = attr.field(repr=False)
+    _signature: typing.Optional[inspect.Signature] = attr.field(repr=False, default=None)
+    _signature_parser: typing.Optional[signature_parser_trait.SignatureParser] = attr.field(
+        repr=False, default=None
+    )
+
+    @property
+    def signature(self) -> inspect.Signature:
+        if not self._signature:
+            raise RuntimeError("This command's signature has not yet been parsed.")
+
+        return self._signature
+
+    @property
+    def signature_parser(self) -> signature_parser_trait.SignatureParser:
+        if not self._signature_parser:
+            raise RuntimeError("This command's signature has not yet been parsed.")
+
+        return self._signature_parser
 
     def __init__(
         self,
@@ -71,10 +90,12 @@ class Command(command_trait.Command[P, T]):
         name: typing.Optional[str] = None,
         description: typing.Optional[str] = None,
         aliases: typing.Optional[typing.Collection[str]] = None,
+        string_parser: typing.Optional[parser.StringParserCallback] = None,
     ):
         self.callback = callback
         self.name = name or callback.__name__
         self.description = description or callback.__doc__ or _DEFAULT_DESC
+        self.string_parser = string_parser or parser.parse_content
 
         if not aliases:
             self.aliases = []
@@ -102,7 +123,7 @@ class Command(command_trait.Command[P, T]):
         greedy: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
         flag: undefined.UndefinedOr[bool] = undefined.UNDEFINED,
     ) -> None:
-        self._signature_parser.update_param_typesafe(
+        self.signature_parser.update_param_typesafe(
             name,
             parser=parser,
             container_parser=container_parser,
@@ -117,7 +138,7 @@ class Command(command_trait.Command[P, T]):
         pos_params: typing.List[param_info.ParamInfo[typing.Any]] = []
         kw_params: typing.Dict[str, param_info.ParamInfo[typing.Any]] = {}
 
-        params_iter = iter(self._signature.parameters.items())
+        params_iter = iter(self.signature.parameters.items())
 
         # Ensure the first argument is the context.
         _, parameter = next(params_iter)
@@ -132,7 +153,11 @@ class Command(command_trait.Command[P, T]):
             else:
                 pos_params.append(paraminfo)
 
-        self._signature_parser = signature_parser.SignatureParser(pos_params, kw_params)
+        self._signature_parser = signature_parser.SignatureParser(
+            pos_params,
+            kw_params,
+            self.string_parser,
+        )
 
     async def invoke(
         self,
@@ -143,7 +168,7 @@ class Command(command_trait.Command[P, T]):
         invoked_with: str,
         invocation: str,
     ) -> None:
-        args, kwargs = self._signature_parser.parse(invocation)
+        args, kwargs = self.signature_parser.parse(invocation)
         ctx = Context(self, prefix, invoked_with, event, args, kwargs)
 
         await self.callback(ctx, *args, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]

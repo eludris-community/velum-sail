@@ -9,6 +9,7 @@ import velum
 from velum.traits import event_manager_trait
 
 from sail.impl import command as command_impl
+from sail.internal import parser
 from sail.traits import command_manager_trait
 from sail.traits import command_trait
 
@@ -85,6 +86,7 @@ class CommandManager(command_manager_trait.CommandManager):
         *,
         description: typing.Optional[str] = None,
         aliases: typing.Optional[typing.Collection[str]] = None,
+        string_parser: typing.Optional[parser.StringParserCallback] = None,
     ) -> typing.Callable[[command_impl.CommandCallback[P, T]], command_impl.Command[P, T]]:
         def wrapper(callback: command_impl.CommandCallback[P, T]) -> command_impl.Command[P, T]:
             command = command_impl.Command(
@@ -92,6 +94,7 @@ class CommandManager(command_manager_trait.CommandManager):
                 name=name,
                 description=description,
                 aliases=aliases,
+                string_parser=string_parser,
             )
 
             self.add_command(command)
@@ -128,7 +131,14 @@ def generate_prefix_prepare(*prefixes: str) -> typing.Callable[[str], CommandMet
         else:
             return (None, None, None)
 
-        command, _, invocation = content[len(prefix) :].lstrip().partition(" ")
-        return (prefix, command.strip(), invocation.strip())
+        split = content[len(prefix) :].lstrip().split(maxsplit=1)
+        try:
+            command, invocation = split
+
+        except ValueError:
+            return (None, None, None)
+
+        else:
+            return (prefix, command.strip(), invocation.strip())
 
     return _prepare

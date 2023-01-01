@@ -1,6 +1,14 @@
 import typing
 
-__all__: typing.Sequence[str] = ("parse_content",)
+__all__: typing.Sequence[str] = (
+    "parse_content",
+    "StringParserCallback",
+)
+
+
+StringParserCallback = typing.Callable[
+    [str], typing.Tuple[typing.Sequence[str], typing.Mapping[str, typing.Sequence[str]]]
+]
 
 
 _QUOTES: typing.Mapping[str, str] = {

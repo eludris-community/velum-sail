@@ -22,7 +22,7 @@ class SignatureParser(signature_parser_trait.SignatureParser):
 
     _pos_params: typing.List[param_info.ParamInfo[typing.Any]] = attr.field()
     _kw_params: typing.Dict[str, param_info.ParamInfo[typing.Any]] = attr.field()
-    # __alias_cache: _AliasCacheT = attr.field(init=False, factory=lambda: (0, {}))
+    string_parser: parser.StringParserCallback = attr.field(default=parser.parse_content)
 
     @property
     def pos_params(self) -> typing.Sequence[param_info.ParamInfo[typing.Any]]:
@@ -306,5 +306,5 @@ class SignatureParser(signature_parser_trait.SignatureParser):
         self,
         invocation: str,
     ) -> typing.Tuple[typing.Sequence[typing.Any], typing.Mapping[str, typing.Any]]:
-        args, kwargs = parser.parse_content(invocation)
+        args, kwargs = self.string_parser(invocation)
         return self._parse(args, kwargs)

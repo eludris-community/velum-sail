@@ -8,9 +8,21 @@ import attr
 
 from sail import errors
 from sail.internal import empty
+from sail.internal import typing_utils
 from sail.traits import argument_parser_trait
 
-__all__: typing.Sequence[str] = ("NumberParser", "BoolParser", "StringParser")
+__all__: typing.Sequence[str] = (
+    "NumberParser",
+    "BoolParser",
+    "StringParser",
+    "UnionParser",
+    "SequenceParser",
+    "SetParser",
+    "UnpackParser",
+    "JoinedStringParser",
+    "determine_type_parser",
+    "determine_container_parser",
+)
 
 
 T = typing.TypeVar("T")
@@ -124,6 +136,48 @@ class StringParser(argument_parser_trait.ArgumentParser[str]):
         return ""
 
 
+class UnionParser(argument_parser_trait.ArgumentParser[T]):
+
+    _type: typing.Type[T]
+
+    def __init__(
+        self,
+        type_: typing.Type[T],
+    ) -> None:
+        self._type = type_
+        self.is_optional = False
+
+        self.parsers: typing.List[argument_parser_trait.ArgumentParser[typing.Any]] = []
+        for subtype in typing.get_args(type_):
+            if subtype in typing_utils.NONES:
+                self.is_optional = True
+
+            else:
+                inner, _, parameter_annotations = typing_utils.unpack_typehint(subtype)
+                self.parsers.append(determine_type_parser(inner, parameter_annotations))
+
+    @property
+    def __type__(self) -> typing.Type[T]:
+        return self._type
+
+    def parse(self, argument: str, default: T | empty.Empty = empty.EMPTY) -> T:
+        for parser in self.parsers:
+            try:
+                return parser.parse(argument)
+
+            except Exception:
+                pass
+
+        if empty.is_nonempty(default):
+            return default
+
+        types_repr = ", ".join(repr(parser.__type__.__name__) for parser in self.parsers)
+        raise RuntimeError(f"Argument {argument!r} could not be converted to any of {types_repr}.")
+
+
+# Container Parsers...
+
+
 @attr.define()
 class _ContainerParser(argument_parser_trait.ContainerParser[ContainerT]):
     # NOTE: This class is private because a container would also allow
@@ -216,3 +270,40 @@ class JoinedStringParser(argument_parser_trait.ContainerParser[str]):
         assert all(isinstance(arg, str) for arg in argument)
 
         return self.separator.join(typing.cast(typing.Sequence[str], argument))
+
+
+# TODO: Perhaps make a dict for this for slightly faster lookup.
+#       Should not matter too much anyways as commands are only created when
+#       the client is first started or when plugins are (re)loaded.
+def determine_type_parser(
+    type_: typing.Type[typing.Any],
+    annotated_params: typing.Sequence[typing.Any],
+) -> argument_parser_trait.ArgumentParser[typing.Any]:
+    if typing.get_origin(type_) in typing_utils.UNIONS:
+        return UnionParser(type_)
+    elif type_ is empty or type_ is typing.Any or issubclass(type_, str):
+        return StringParser()
+    elif issubclass(type_, bool):
+        return BoolParser()
+    elif issubclass(type_, int):
+        return NumberParser(decimal=False)
+    elif issubclass(type_, float):
+        return NumberParser()
+
+    raise TypeError(f"Unsupported type annotation: {type_!r}.")
+
+
+def determine_container_parser(
+    type_: typing.Optional[typing.Type[typing.Container[typing.Any]]],
+    annotated_params: typing.Sequence[typing.Any],
+) -> argument_parser_trait.ContainerParser[typing.Any]:
+    if typing_utils.SpecialType.JOINEDSTR in annotated_params:
+        return JoinedStringParser()
+    elif type_ is None:
+        return UnpackParser()
+    elif issubclass(type_, typing.Sequence):
+        return SequenceParser(type_)
+    elif issubclass(type_, typing.AbstractSet):
+        return SetParser(type_)
+
+    raise TypeError(f"Unsupported container type annotation: {type_!r}.")

@@ -15,41 +15,6 @@ __all__: typing.Sequence[str] = ("ParamInfo",)
 
 
 T = typing.TypeVar("T")
-AnyContainer = typing.Container[typing.Any]
-
-
-def _determine_type_parser(
-    type_: typing.Type[typing.Any],
-    parameter_name: str,
-    annotated_params: typing.Sequence[typing.Any],
-) -> argument_parser_trait.ArgumentParser[typing.Any]:
-    if type_ is empty or type_ is typing.Any or issubclass(type_, str):
-        return argument_parser.StringParser()
-    elif issubclass(type_, bool):
-        return argument_parser.BoolParser()
-    elif issubclass(type_, int):
-        return argument_parser.NumberParser(decimal=False)
-    elif issubclass(type_, float):
-        return argument_parser.NumberParser()
-
-    raise TypeError(f"Unsupported type annotation for parameter {parameter_name}.")
-
-
-def _determine_container_parser(
-    type_: typing.Optional[typing.Type[AnyContainer]],
-    parameter_name: str,
-    annotated_params: typing.Sequence[typing.Any],
-) -> argument_parser_trait.ContainerParser[typing.Any]:
-    if typing_utils.SpecialType.JOINEDSTR in annotated_params:
-        return argument_parser.JoinedStringParser()
-    elif type_ is None:
-        return argument_parser.UnpackParser()
-    elif issubclass(type_, typing.Sequence):
-        return argument_parser.SequenceParser(type_)
-    elif issubclass(type_, typing.AbstractSet):
-        return argument_parser.SetParser(type_)
-
-    raise TypeError(f"Unsupported container type annotation for parameter {parameter_name}.")
 
 
 @attr.define()
@@ -92,6 +57,8 @@ class ParamInfo(typing.Generic[T]):
     def from_parameter(cls, parameter: inspect.Parameter) -> typing_extensions.Self:
         inner, container, annotated_params = typing_utils.unpack_typehint(parameter.annotation)
 
+        print(f"{inner=}, {container=}, {annotated_params=}")
+
         greedy = typing_utils.SpecialType.GREEDY in annotated_params
         flag = parameter.kind is inspect.Parameter.KEYWORD_ONLY
 
@@ -104,10 +71,19 @@ class ParamInfo(typing.Generic[T]):
         if greedy and not container:
             raise TypeError("Greedy parameters must be have a container of some sort.")
 
+        try:
+            type_parser = argument_parser.determine_type_parser(inner, annotated_params)
+            container_parser = argument_parser.determine_container_parser(
+                container, annotated_params
+            )
+
+        except TypeError as exc:
+            raise TypeError(f"In parameter {parameter.name}: {exc!s}") from exc
+
         return cls(
             parameter.name,
-            _determine_type_parser(inner, parameter.name, annotated_params),
-            _determine_container_parser(container, parameter.name, annotated_params),
+            parser=type_parser,
+            container_parser=container_parser,
             default=parameter.default,
             greedy=greedy,
             flag=flag,
@@ -121,7 +97,7 @@ class ParamInfo(typing.Generic[T]):
             argument_parser_trait.ArgumentParser[T]
         ] = undefined.UNDEFINED,
         container_parser: undefined.UndefinedOr[
-            argument_parser_trait.ContainerParser[AnyContainer],
+            argument_parser_trait.ContainerParser[typing.Container[typing.Any]],
         ] = undefined.UNDEFINED,
         default: undefined.UndefinedOr[T] = undefined.UNDEFINED,
         short: undefined.UndefinedOr[str] = undefined.UNDEFINED,

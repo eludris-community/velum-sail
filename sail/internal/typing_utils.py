@@ -1,12 +1,19 @@
 import enum
+import types
 import typing
 
 __all__: typing.Sequence[str] = (
+    "UNIONS",
+    "NONES",
+    "SpecialType",
     "Greedy",
     "JoinedStr",
-    "SpecialType",
     "unpack_typehint",
 )
+
+
+UNIONS = frozenset((typing.Union, types.UnionType))
+NONES = frozenset((None, types.NoneType))
 
 
 class SpecialType(enum.Enum):
@@ -32,6 +39,11 @@ def unpack_typehint(
 
             inner, container, _ = unpack_typehint(annotation)
             return inner, container, annotated_args
+
+        if container in UNIONS:
+            # Treat a union as if it were any other singular type,
+            # individual args are handled later by the parser.
+            return annotation, None, ()
 
         inner = typing.get_args(annotation)[0]
     else:

@@ -136,7 +136,7 @@ def generate_prefix_prepare(*prefixes: str) -> typing.Callable[[str], CommandMet
             command, invocation = split
 
         except ValueError:
-            return (None, None, None)
+            return (prefix, split[0].strip(), "")
 
         else:
             return (prefix, command.strip(), invocation.strip())

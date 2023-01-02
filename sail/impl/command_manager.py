@@ -102,6 +102,9 @@ class CommandManager(command_manager_trait.CommandManager):
 
         return wrapper
 
+    def get_command(self, name: str) -> typing.Optional[command_trait.AnyCommand]:
+        return self._commands.get(name)
+
     def bind_to_event_manager(self, event_manager: event_manager_trait.EventManager) -> None:
         event_manager.subscribe(velum.MessageCreateEvent, self.try_invoke)
 

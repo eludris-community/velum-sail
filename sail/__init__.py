@@ -4,6 +4,7 @@ from sail import traits as traits
 from sail.errors import *
 from sail.impl.command import *
 from sail.impl.command_manager import *
+from sail.impl.plugin import *
 from sail.internal.typing_utils import Greedy as Greedy
 from sail.internal.typing_utils import JoinedStr as JoinedStr
 from sail.internal.undefined import UNDEFINED as UNDEFINED

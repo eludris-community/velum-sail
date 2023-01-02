@@ -22,4 +22,10 @@ async def main():
     await client.start()
 
 
+@manager.command()
+async def reload(ctx: sail.Context):
+    await sail.reload_extension(".test_plugin", client=client, command_manager=manager)
+    await client.rest.send_message("Sail", "Done deal.")
+
+
 asyncio.run(main())

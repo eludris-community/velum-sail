@@ -20,7 +20,7 @@ from sail.traits import command_manager_trait
 from sail.traits import command_trait
 from sail.traits import plugin_trait
 
-__all__: typing.Sequence[str] = ("Plugin", "load_extension", "unload_extension")
+__all__: typing.Sequence[str] = ("Plugin", "load_extension", "unload_extension", "reload_extension")
 
 
 P = typing.ParamSpec("P")
@@ -343,6 +343,21 @@ async def load_extension(
         module.__initializing__ = False  # type: ignore
 
 
+async def _unload_extension(
+    ext_name: str,
+    /,
+    *,
+    client: velum.GatewayClient,
+    command_manager: command_manager_trait.CommandManager,
+    is_reload: bool = False,
+) -> types.ModuleType:
+    module = sys.modules[ext_name]
+
+    await _assert_extension(module).unload(client, command_manager)
+
+    return sys.modules.pop(ext_name)
+
+
 async def unload_extension(
     ext_name: str,
     /,
@@ -350,8 +365,30 @@ async def unload_extension(
     client: velum.GatewayClient,
     command_manager: command_manager_trait.CommandManager,
 ) -> None:
-    module = sys.modules[ext_name]
+    module = await _unload_extension(ext_name, client=client, command_manager=command_manager)
+    del module
 
-    await _assert_extension(module).unload(client, command_manager)
 
-    del sys.modules[ext_name]
+async def reload_extension(
+    ext_name: str,
+    /,
+    *,
+    client: velum.GatewayClient,
+    command_manager: command_manager_trait.CommandManager,
+) -> types.ModuleType:
+    unloaded = await _unload_extension(
+        ext_name,
+        client=client,
+        command_manager=command_manager,
+        is_reload=True,
+    )
+
+    package = unloaded.__package__
+    del unloaded
+
+    return await load_extension(
+        ext_name,
+        package,
+        client=client,
+        command_manager=command_manager,
+    )

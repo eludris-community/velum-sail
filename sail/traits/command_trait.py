@@ -15,11 +15,20 @@ AnyCommand: typing.TypeAlias = "Command[typing.Any, typing.Any]"
 CommandT = typing.TypeVar("CommandT", bound=AnyCommand)
 
 
+class _AnyCallable(typing.Protocol):
+    """An extremely lenient callable type."""
+
+    def __call__(self, *__args: typing.Any, **kwargs: typing.Any) -> typing.Any:
+        ...
+
+
 class Command(typing.Protocol[P, T_co]):
-    __slots__: typing.Sequence[str] = ("name",)
+    __slots__: typing.Sequence[str] = ("name", "description", "aliases", "callback")
 
     name: str
+    description: str
     aliases: typing.Collection[str]
+    callback: _AnyCallable
 
     async def invoke(
         self,

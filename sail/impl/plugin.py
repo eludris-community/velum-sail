@@ -272,7 +272,8 @@ class Plugin(plugin_trait.Plugin):
 
     @property
     def entrypoints(self) -> typing.Tuple[_EntrypointCallback, _EntrypointCallback]:
-        """Returns the plugin's most basic entrypoints. For use in an extension as
+        """Returns the plugin's most basic entrypoints. For use in an extension
+        such that the plugin can be loaded as part of an extension.
 
         .. code-block:: python3
 
@@ -281,8 +282,6 @@ class Plugin(plugin_trait.Plugin):
             ...
 
             load, unload = plugin.entrypoints
-
-        such that the plugin can be loaded as part of an extension.
 
         Note that you can always provide custom implementations for ``load``
         and ``unload`` on the extension (module/file), in case you need to

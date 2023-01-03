@@ -1,13 +1,8 @@
 import asyncio
-import logging
 
 import velum
 
 import sail
-
-logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
-
 
 client = velum.GatewayClient()
 manager = sail.CommandManager.with_prefix("!")

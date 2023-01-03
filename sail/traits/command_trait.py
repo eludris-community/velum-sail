@@ -22,6 +22,7 @@ class _AnyCallable(typing.Protocol):
         ...
 
 
+@typing.runtime_checkable
 class Command(typing.Protocol[P, T_co]):
     __slots__: typing.Sequence[str] = ("name", "description", "aliases", "callback")
 

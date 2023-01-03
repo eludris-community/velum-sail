@@ -109,11 +109,12 @@ class Plugin(plugin_trait.Plugin):
 
         self._commands[command.name] = command
 
-    def remove_command(self, command: command_trait.Command[typing.Any, typing.Any]) -> None:
-        if command.name in self._commands:
-            raise RuntimeError(
-                f"Plugin {self.name!r} does not have a command named {command.name!r}."
-            )
+    def remove_command(self, command: command_trait.Command[typing.Any, typing.Any] | str) -> None:
+        name = command.name if isinstance(command, command_trait.Command) else command
+        if name not in self._commands:
+            raise RuntimeError(f"Plugin {self.name!r} does not have a command named {name!r}.")
+
+        self._commands.pop(name)
 
     def command(
         self,

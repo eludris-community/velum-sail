@@ -3,6 +3,7 @@ import importlib.abc
 import importlib.util
 import inspect
 import logging
+import os
 import pathlib
 import sys
 import types
@@ -292,6 +293,20 @@ class Plugin(plugin_trait.Plugin):
         return self.load, self.unload
 
 
+def _assert_get_package() -> str:
+    cwd = os.getcwd()
+
+    package = sys.modules["__main__"].__file__
+    if not package:
+        raise ValueError("Failed to find the name of the main module.")
+
+    return ".".join(
+        pathlib.Path(package)
+        .relative_to(cwd)
+        .parts[:-1]
+    )  # fmt: skip
+
+
 def _assert_extension(module: types.ModuleType) -> plugin_trait.Extension:
     if not isinstance(module, plugin_trait.Extension):
         raise TypeError(
@@ -310,7 +325,17 @@ async def load_extension(
     client: velum.GatewayClient,
     command_manager: command_manager_trait.CommandManager,
 ) -> types.ModuleType:
-    # is_reload = ext_name in sys.modules  # TODO: submodules with fancy reloads
+    if not package and ext_name.startswith("."):
+        try:
+            package = _assert_get_package()
+        except Exception as exc:
+            raise LookupError(
+                "No package provided for relative import, could not automatically determine one."
+            ) from exc
+
+        _LOGGER.info(
+            "No package provided for relative import, attempting with {package} as package."
+        )
 
     spec = importlib.util.find_spec(ext_name, package)
     if not spec:
@@ -355,7 +380,10 @@ async def _unload_extension(
 
     await _assert_extension(module).unload(client, command_manager)
 
-    return sys.modules.pop(ext_name)
+    if not is_reload:
+        sys.modules.pop(ext_name)
+
+    return module
 
 
 async def unload_extension(
